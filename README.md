@@ -8,7 +8,7 @@
 
 Exemple simple d'utilisation du RMI.
 
-Il y a une interace `Hello` qui contient une méthode `sayHello` qui prend un `String` en paramètre et retourne un `String`.
+Il y a une interface `Hello` qui contient une méthode `sayHello` qui prend un `String` en paramètre et retourne un `String`.
 
 Il y a une classe `HelloImpl` qui implémente l'interface `Hello`.
 
@@ -22,3 +22,4 @@ Il y a une copie de l'interface `Hello` dans le projet client pour éviter les p
 
 ## Exemple de RMI + Protocole 
 
+Test 

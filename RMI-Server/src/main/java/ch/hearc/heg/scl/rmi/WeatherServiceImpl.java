@@ -55,16 +55,24 @@ public class WeatherServiceImpl extends UnicastRemoteObject implements WeatherSe
             System.out.println("Station non trouvée, interrogation de l'API...");
             WeatherStation newStation = apiClient.getWeatherByCoordinates(latitude, longitude);
 
-            // 3. Persister la nouvelle station
+            // 3. VALIDATION : Vérifier que l'API a retourné un nom valide
+            if (newStation.getName() == null || newStation.getName().trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Aucune station météo trouvée pour ces coordonnées. " +
+                                "Veuillez vérifier que les coordonnées correspondent à une zone habitée."
+                );
+            }
+
+            // 4. Persister la nouvelle station
             newStation = stationDAO.insert(newStation);
             System.out.println("Nouvelle station créée avec ID : " + newStation.getId());
 
-            // 4. Persister les données météo
+            // 5. Persister les données météo
             WeatherData weatherData = newStation.getCurrentWeather();
             weatherData.setStationId(newStation.getId());
             weatherData = weatherDataDAO.insert(weatherData);
 
-            // 5. Réassocier les données à la station
+            // 6. Réassocier les données à la station
             newStation.setCurrentWeather(weatherData);
 
             return newStation;
@@ -75,6 +83,9 @@ public class WeatherServiceImpl extends UnicastRemoteObject implements WeatherSe
         } catch (IOException e) {
             System.err.println("Erreur API météo : " + e.getMessage());
             throw new RemoteException("Erreur lors de l'appel à l'API météo", e);
+        } catch (IllegalArgumentException e) {
+            System.err.println("Coordonnées invalides : " + e.getMessage());
+            throw new RemoteException(e.getMessage(), e);
         }
     }
 
@@ -143,10 +154,10 @@ public class WeatherServiceImpl extends UnicastRemoteObject implements WeatherSe
                     stationDAO.updateLastUpdated(station.getId());
 
                     successCount++;
-                    System.out.println("✓ Station mise à jour : " + station.getName());
+                    System.out.println("Station mise à jour : " + station.getName());
 
                 } catch (IOException e) {
-                    System.err.println("✗ Échec pour " + station.getName() + " : " + e.getMessage());
+                    System.err.println("Échec pour " + station.getName() + " : " + e.getMessage());
                     // Continue avec les autres stations
                 }
             }

@@ -16,6 +16,7 @@ public class DatabaseConfig {
     private static String URL;
     private static String USERNAME;
     private static String PASSWORD;
+    private static String API_KEY;  // ← AJOUT
     private static Connection connection = null;
 
     static {
@@ -42,9 +43,10 @@ public class DatabaseConfig {
             URL = props.getProperty("db.url");
             USERNAME = props.getProperty("db.username");
             PASSWORD = props.getProperty("db.password");
+            API_KEY = props.getProperty("api.key");  // ← AJOUT
 
             // Validation
-            if (URL == null || USERNAME == null || PASSWORD == null) {
+            if (URL == null || USERNAME == null || PASSWORD == null || API_KEY == null) {  // ← MODIF
                 throw new IllegalStateException("Configuration incomplète dans database.properties");
             }
 
@@ -71,6 +73,14 @@ public class DatabaseConfig {
             }
         }
         return connection;
+    }
+
+    /**
+     * Récupère la clé API OpenWeatherMap depuis la configuration.
+     * @return La clé API
+     */
+    public static String getApiKey() {  // ← AJOUT
+        return API_KEY;
     }
 
     /**

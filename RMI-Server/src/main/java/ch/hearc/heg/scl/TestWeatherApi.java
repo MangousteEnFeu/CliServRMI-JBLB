@@ -1,5 +1,6 @@
 package ch.hearc.heg.scl;
 
+import ch.hearc.heg.scl.database.DatabaseConfig;  // ← AJOUT
 import ch.hearc.heg.scl.model.WeatherStation;
 import ch.hearc.heg.scl.service.WeatherApiClient;
 
@@ -13,9 +14,7 @@ public class TestWeatherApi {
 
     public static void main(String[] args) {
 
-        String apiKey = "55adad33f202156b4aa5fe494059bd36";
-
-        WeatherApiClient client = new WeatherApiClient(apiKey);
+        WeatherApiClient client = new WeatherApiClient(DatabaseConfig.getApiKey());  // ← MODIF ICI
 
         try {
             // Test avec La Chaux-de-Fonds

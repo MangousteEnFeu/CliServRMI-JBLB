@@ -15,13 +15,12 @@ DROP SEQUENCE WEATHER_DATA_SEQ;
 -- ========================================
 CREATE TABLE WEATHER_STATION (
     ID              NUMBER(10)      PRIMARY KEY,
-    NAME            VARCHAR2(100)   NOT NULL,
+    NAME            VARCHAR2(100)   NOT NULL UNIQUE,
+    COUNTRY         VARCHAR2(10),
     LATITUDE        NUMBER(10,6)    NOT NULL,
     LONGITUDE       NUMBER(10,6)    NOT NULL,
-    LAST_UPDATED    TIMESTAMP       NOT NULL,
-    
-    -- Contrainte d'unicité sur les coordonnées (une seule station par position)
-    CONSTRAINT UK_COORDINATES UNIQUE (LATITUDE, LONGITUDE)
+    LAST_UPDATED    TIMESTAMP       NOT NULL
+
 );
 
 -- Séquence pour l'auto-incrémentation de l'ID

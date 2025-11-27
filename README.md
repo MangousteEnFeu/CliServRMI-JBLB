@@ -115,13 +115,15 @@ api.key=VOTRE_CLE_API_OPENWEATHERMAP
 
 ### Table WEATHER_STATION
 
-| Colonne       | Type          | Description                        |
-|---------------|---------------|------------------------------------|
-| ID            | NUMBER(10)    | Clé primaire (auto-incrémenté)    |
-| NAME          | VARCHAR2(100) | Nom de la ville                   |
-| LATITUDE      | NUMBER(10,6)  | Latitude (-90 à 90)               |
-| LONGITUDE     | NUMBER(10,6)  | Longitude (-180 à 180)            |
-| LAST_UPDATED  | TIMESTAMP     | Date de dernière mise à jour      |
+| Colonne           | Type          | Description                        |
+|-------------------|---------------|------------------------------------|
+| ID                | NUMBER(10)    | Clé primaire (auto-incrémenté)    |
+| OPENWEATHERMAP_ID | NUMBER(15)    | ID unique de l'API (évite doublons)|
+| NAME              | VARCHAR2(100) | Nom de la ville                   |
+| COUNTRY           | VARCHAR2(10)  | Code pays (ex: CH, FR)            |
+| LATITUDE          | NUMBER(10,6)  | Latitude (-90 à 90)               |
+| LONGITUDE         | NUMBER(10,6)  | Longitude (-180 à 180)            |
+| LAST_UPDATED      | TIMESTAMP     | Date de dernière mise à jour      |
 
 **Contrainte :** Unicité sur (LATITUDE, LONGITUDE)
 

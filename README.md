@@ -1,25 +1,220 @@
-# SCL-CH7-Sample
+# Projet n°2 - Service Météo RMI
+
+**Auteurs :** Loïc Barthoulot & Jérémie Bressoud (Sur la base d'un exercice de M. Francillon) 
+**Cours :** Services et composants logiciels
+**Date :** Novembre 27.11.2025
+
+---
+
+## Description
+
+Application client-serveur distribuée permettant de consulter et gérer des données météorologiques via RMI (Remote Method Invocation). Le système interroge l'API OpenWeatherMap et persiste les données dans une base de données Oracle.
+
+### Fonctionnalités
+
+1. **Recherche par coordonnées** : Recherche une station météo et l'ajoute automatiquement en base si elle n'existe pas
+2. **Liste des stations** : Affiche toutes les stations enregistrées (sans données météo)
+3. **Détails d'une station** : Affiche une station avec toutes ses données météorologiques
+4. **Rafraîchissement** : Met à jour les données de toutes les stations depuis l'API
+
+---
+
+## Technologies utilisées
+
+- **Java** : Langage de programmation
+- **RMI** : Communication réseau client-serveur
+- **HttpClient** : Interrogation de l'API REST OpenWeatherMap
+- **Gson** : Désérialisation JSON
+- **JDBC/OJDBC11** : Persistance en base de données Oracle
+- **Maven** : Gestion des dépendances
+
+---
+
+## Structure du projet
+
+```
+SCL-CH7-Sample/
+├── RMI-Server/                    # Module serveur
+│   ├── src/main/java/
+│   │   └── ch/hearc/heg/scl/
+│   │       ├── dao/               # Accès données (JDBC)
+│   │       ├── database/          # Configuration DB
+│   │       ├── model/             # Classes métier
+│   │       ├── rmi/               # Interface et implémentation RMI
+│   │       ├── service/           # Client API OpenWeatherMap
+│   │       └── Main.java          # Point d'entrée serveur
+│   └── src/main/resources/
+│       └── database.properties.template
+│
+├── RMI-Client/                    # Module client
+│   └── src/main/java/
+│       └── ch/hearc/heg/scl/
+│           ├── model/             # Classes métier (copie)
+│           ├── rmi/               # Interface RMI (copie)
+│           └── ClientMenu.java   # Interface utilisateur console
+│
+└── create_database.sql            # Script de création des tables
+```
+
+---
+
+## Configuration requise
+
+### Prérequis
+
+- **Java 23** ou supérieur
+- **Maven 3.6+**
+- **Oracle Database** (accessible via HE-Arc)
+- **Compte OpenWeatherMap** (clé API gratuite)
+
+### Configuration de la base de données
+
+#### Étape 1 : Exécuter le script SQL
+
+Connectez-vous à Oracle SQL Developer ou SQLPlus et exécutez le fichier `create_database.sql` fourni à la racine du projet.
+
+```sql
+-- Le script crée automatiquement :
+-- - Table WEATHER_STATION
+-- - Table WEATHER_DATA
+-- - Séquences pour auto-incrémentation
+-- - Index d'optimisation
+```
+
+#### Étape 2 : Configurer les identifiants
+
+Dans le module **RMI-Server**, créez un fichier `database.properties` :
+
+```bash
+cd RMI-Server/src/main/resources/
+cp database.properties.template database.properties
+```
+
+Éditez `database.properties` avec vos identifiants :
+
+```properties
+db.url=jdbc:oracle:thin:@db.ig.he-arc.ch:1521:ens
+db.username=VOTRE_USERNAME_HE_ARC
+db.password=VOTRE_PASSWORD_HE_ARC
+api.key=VOTRE_CLE_API_OPENWEATHERMAP
+```
+
+> **Important** : Le fichier `database.properties` est ignoré par Git pour des raisons de sécurité.
+
+### Obtenir une clé API OpenWeatherMap
+
+1. Créez un compte gratuit sur [OpenWeatherMap](https://openweathermap.org/api)
+2. Accédez à votre profil → API Keys
+3. Copiez la clé et collez-la dans `database.properties` (ligne `api.key=`)
+4. Attendez 10-15 minutes pour l'activation de la clé
+
+---
 
 
+## Structure de la base de données
 
-## Exemple d'utilisation du RMI
+### Table WEATHER_STATION
 
-### RMI-Server
+| Colonne       | Type          | Description                        |
+|---------------|---------------|------------------------------------|
+| ID            | NUMBER(10)    | Clé primaire (auto-incrémenté)    |
+| NAME          | VARCHAR2(100) | Nom de la ville                   |
+| LATITUDE      | NUMBER(10,6)  | Latitude (-90 à 90)               |
+| LONGITUDE     | NUMBER(10,6)  | Longitude (-180 à 180)            |
+| LAST_UPDATED  | TIMESTAMP     | Date de dernière mise à jour      |
 
-Exemple simple d'utilisation du RMI.
+**Contrainte :** Unicité sur (LATITUDE, LONGITUDE)
 
-Il y a une interface `Hello` qui contient une méthode `sayHello` qui prend un `String` en paramètre et retourne un `String`.
+### Table WEATHER_DATA
 
-Il y a une classe `HelloImpl` qui implémente l'interface `Hello`.
+| Colonne       | Type          | Description                        |
+|---------------|---------------|------------------------------------|
+| ID            | NUMBER(10)    | Clé primaire (auto-incrémenté)    |
+| STATION_ID    | NUMBER(10)    | Clé étrangère vers WEATHER_STATION|
+| TEMPERATURE   | NUMBER(5,2)   | Température en °C                  |
+| FEELS_LIKE    | NUMBER(5,2)   | Température ressentie en °C        |
+| HUMIDITY      | NUMBER(3)     | Humidité (0-100%)                  |
+| PRESSURE      | NUMBER(5)     | Pression atmosphérique (hPa)       |
+| DESCRIPTION   | VARCHAR2(200) | Description météo                  |
+| ICON          | VARCHAR2(10)  | Code icône OpenWeatherMap          |
+| WIND_SPEED    | NUMBER(5,2)   | Vitesse du vent (m/s)              |
+| TIMESTAMP     | TIMESTAMP     | Date/heure de la mesure            |
 
-Il y a une classe `Main` qui crée une instance de `HelloImpl` et la lie à un registre RMI.
+**Relation :** `WEATHER_DATA.STATION_ID` → `WEATHER_STATION.ID` (ON DELETE CASCADE)
 
-### RMI-Client
+---
 
-Il y a une classe `Main` qui se connecte au registre RMI et récupère l'instance de `Hello` pour appeler la méthode `sayHello`.
+## Architecture technique
 
-Il y a une copie de l'interface `Hello` dans le projet client pour éviter les problèmes de classpath. Cela illustre également le client qui ne serait pas sur la même machine que le serveur.
+### Communication RMI
 
-## Exemple de RMI + Protocole 
+1. Le serveur exporte l'interface `WeatherService` sur le port **1099**
+2. Le client se connecte au registre RMI et obtient une référence au service
+3. Les appels de méthodes sont transparents (comme des appels locaux)
+4. Les objets `WeatherStation` et `WeatherData` sont sérialisés pour le transfert réseau
 
-Test 
+### Flux d'une recherche par coordonnées
+
+```
+CLIENT                 SERVEUR                API              DATABASE
+  │                      │                     │                  │
+  ├─RMI call────────────►│                     │                  │
+  │  getStationBy        │                     │                  │
+  │  Coordinates()       │                     │                  │
+  │                      ├─SELECT──────────────┼─────────────────►│
+  │                      │                     │                  │
+  │                      │◄─NULL (pas trouvé)──┼──────────────────┤
+  │                      │                     │                  │
+  │                      ├─HTTP GET────────────►│                  │
+  │                      │                     │                  │
+  │                      │◄─JSON Response──────┤                  │
+  │                      │                     │                  │
+  │                      ├─INSERT STATION──────┼─────────────────►│
+  │                      ├─INSERT WEATHER_DATA─┼─────────────────►│
+  │                      │                     │                  │
+  │◄─WeatherStation──────┤                     │                  │
+  │  (serialized)        │                     │                  │
+```
+
+## Livrable
+
+**Contenu du ZIP :**
+- Tous les fichiers sources
+- `pom.xml` (modules parent, serveur, client)
+- `create_database.sql`
+- `database.properties.template`
+- Ce README
+- Pas de `database.properties` (sécurité)
+
+---
+
+## Notes importantes
+
+### Conformité avec les exigences
+
+- **Client et Serveur dans des modules séparés** : RMI-Server et RMI-Client  
+- **4 fonctionnalités serveur implémentées** : recherche, liste, détails, rafraîchissement  
+- **Menu client interactif** : ConsoleMenu avec saisies utilisateur  
+- **Technologies imposées** : Java, RMI, HttpClient, Gson, JDBC/OJDBC  
+- **README complet** : Instructions de démarrage détaillées  
+- **Script SQL fourni** : `create_database.sql`  
+- **Projet exécutable** : Instructions claires pour le lancement
+
+### Points d'attention
+
+- Les identifiants de base de données sont **dans un fichier séparé** ignoré par Git
+- Le **script SQL** permet de recréer la structure complète
+- Les **membres du groupe** sont indiqués en haut du README
+- Le projet **compile et s'exécute** en suivant les instructions
+
+---
+
+## Apprentissages
+
+Ce projet nous a permis de :
+
+- Maîtriser **RMI** pour la communication distribuée
+- Implémenter le **pattern DAO** pour l'abstraction des données
+- Intégrer une **API REST externe** (OpenWeatherMap)
+- Gérer la **persistance** avec JDBC et Oracle
+- Gérer les **erreurs réseau** et les cas limites

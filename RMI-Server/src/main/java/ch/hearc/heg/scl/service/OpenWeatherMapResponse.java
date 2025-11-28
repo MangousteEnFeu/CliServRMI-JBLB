@@ -8,11 +8,13 @@ import java.util.List;
  */
 public class OpenWeatherMapResponse {
 
+    private long id;
     private String name;           // Nom de la ville
     private Coord coord;           // Coordonnées
     private List<Weather> weather; // Liste des conditions météo
     private Main main;             // Données principales (temp, humidité, etc.)
     private Wind wind;             // Données du vent
+    private Sys sys;
 
     // Getters et Setters
     public String getName() {
@@ -54,6 +56,12 @@ public class OpenWeatherMapResponse {
     public void setWind(Wind wind) {
         this.wind = wind;
     }
+
+    public long getId() { return id; }
+    public void setId(long id) { this.id = id; }
+
+    public Sys getSys() { return sys; }
+    public void setSys(Sys sys) { this.sys = sys; }
 
     // Classes internes pour la structure JSON
 
@@ -148,5 +156,11 @@ public class OpenWeatherMapResponse {
         public void setSpeed(double speed) {
             this.speed = speed;
         }
+    }
+    public static class Sys {
+        private String country;
+
+        public String getCountry() { return country; }
+        public void setCountry(String country) { this.country = country; }
     }
 }

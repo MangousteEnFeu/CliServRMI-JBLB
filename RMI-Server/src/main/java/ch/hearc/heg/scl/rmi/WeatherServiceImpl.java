@@ -11,6 +11,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Implémentation du service RMI pour la gestion des stations météo.
@@ -38,54 +39,39 @@ public class WeatherServiceImpl extends UnicastRemoteObject implements WeatherSe
     @Override
     public WeatherStation getStationByCoordinates(double latitude, double longitude) throws RemoteException {
         try {
-            // 1. Vérifier si la station existe déjà en base
-            WeatherStation existingStation = stationDAO.findByCoordinates(latitude, longitude);
+            // 1. D'ABORD appeler l'API pour obtenir l'ID OpenWeatherMap
+            WeatherStation apiStation = apiClient.getWeatherByCoordinates(latitude, longitude);
+            long owmId = apiStation.getOpenWeatherMapId();
 
-            if (existingStation != null) {
-                System.out.println("Station trouvée en base : " + existingStation.getName());
+            // 2. Vérifier si cette station existe déjà (par OWM ID, pas par coordonnées)
+            Optional<WeatherStation> existingStation = stationDAO.findByOpenWeatherMapId(owmId);
 
-                // Charger les données météo actuelles depuis la base
-                WeatherData latestWeather = weatherDataDAO.findLatestByStationId(existingStation.getId());
-                existingStation.setCurrentWeather(latestWeather);
+            if (existingStation.isPresent()) {
+                // Station existante : juste mettre à jour les données météo
+                WeatherStation station = existingStation.get();
 
-                return existingStation;
+                WeatherData weatherData = apiStation.getCurrentWeather();
+                weatherData.setStationId(station.getId());
+                weatherDataDAO.insert(weatherData);
+
+                stationDAO.updateLastUpdated(station.getId());
+                station.setCurrentWeather(weatherData);
+
+                return station;
+            } else {
+                // Nouvelle station : insérer
+                WeatherStation newStation = stationDAO.insert(apiStation);
+
+                WeatherData weatherData = apiStation.getCurrentWeather();
+                weatherData.setStationId(newStation.getId());
+                weatherDataDAO.insert(weatherData);
+
+                newStation.setCurrentWeather(weatherData);
+                return newStation;
             }
 
-            // 2. Si la station n'existe pas, interroger l'API
-            System.out.println("Station non trouvée, interrogation de l'API...");
-            WeatherStation newStation = apiClient.getWeatherByCoordinates(latitude, longitude);
-
-            // 3. VALIDATION : Vérifier que l'API a retourné un nom valide
-            if (newStation.getName() == null || newStation.getName().trim().isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Aucune station météo trouvée pour ces coordonnées. " +
-                                "Veuillez vérifier que les coordonnées correspondent à une zone habitée."
-                );
-            }
-
-            // 4. Persister la nouvelle station
-            newStation = stationDAO.insert(newStation);
-            System.out.println("Nouvelle station créée avec ID : " + newStation.getId());
-
-            // 5. Persister les données météo
-            WeatherData weatherData = newStation.getCurrentWeather();
-            weatherData.setStationId(newStation.getId());
-            weatherData = weatherDataDAO.insert(weatherData);
-
-            // 6. Réassocier les données à la station
-            newStation.setCurrentWeather(weatherData);
-
-            return newStation;
-
-        } catch (SQLException e) {
-            System.err.println("Erreur base de données : " + e.getMessage());
-            throw new RemoteException("Erreur lors de l'accès à la base de données", e);
-        } catch (IOException e) {
-            System.err.println("Erreur API météo : " + e.getMessage());
-            throw new RemoteException("Erreur lors de l'appel à l'API météo", e);
-        } catch (IllegalArgumentException e) {
-            System.err.println("Coordonnées invalides : " + e.getMessage());
-            throw new RemoteException(e.getMessage(), e);
+        } catch (SQLException | IOException e) {
+            throw new RemoteException("Erreur: " + e.getMessage(), e);
         }
     }
 

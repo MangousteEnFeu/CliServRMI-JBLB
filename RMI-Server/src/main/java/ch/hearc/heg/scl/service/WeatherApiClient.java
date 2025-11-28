@@ -84,13 +84,17 @@ public class WeatherApiClient {
      * Convertit la réponse de l'API en objets du modèle métier.
      */
     private WeatherStation convertToWeatherStation(OpenWeatherMapResponse apiResponse) {
-        // Créer la station
-        WeatherStation station = new WeatherStation(
-                apiResponse.getName(),
-                apiResponse.getCoord().getLat(),
-                apiResponse.getCoord().getLon()
-        );
+        OpenWeatherMapResponse.Coord coord = apiResponse.getCoord();
+        OpenWeatherMapResponse.Sys sys = apiResponse.getSys();
 
+        // MODIFIER : Utiliser le constructeur avec openWeatherMapId
+        WeatherStation station = new WeatherStation(
+                apiResponse.getId(),                          // ID OpenWeatherMap
+                apiResponse.getName(),
+                sys != null ? sys.getCountry() : null,        // Pays
+                coord.getLat(),
+                coord.getLon()
+        );
         // Créer les données météo
         OpenWeatherMapResponse.Main main = apiResponse.getMain();
         OpenWeatherMapResponse.Weather weather = apiResponse.getWeather().get(0);

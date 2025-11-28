@@ -7,6 +7,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Data Access Object pour la table WEATHER_STATION.
@@ -15,30 +16,27 @@ import java.util.List;
 public class WeatherStationDAO {
 
     /**
-     * Recherche une station par ses coordonnées géographiques.
+     * Recherche une station par son ID OpenWeatherMap.
      *
-     * @param latitude Latitude de la station
-     * @param longitude Longitude de la station
-     * @return La station trouvée, ou null si elle n'existe pas
+     * @param openWeatherMapId ID unique de l'API OpenWeatherMap
+     * @return Optional contenant la station si trouvée
      */
-    public WeatherStation findByCoordinates(double latitude, double longitude) throws SQLException {
-        String sql = "SELECT ID, NAME, LATITUDE, LONGITUDE, LAST_UPDATED " +
-                "FROM WEATHER_STATION " +
-                "WHERE LATITUDE = ? AND LONGITUDE = ?";
+    public Optional<WeatherStation> findByOpenWeatherMapId(long openWeatherMapId) throws SQLException {
+        String sql = "SELECT ID, OPENWEATHERMAP_ID, NAME, COUNTRY, LATITUDE, LONGITUDE, LAST_UPDATED " +
+                "FROM WEATHER_STATION WHERE OPENWEATHERMAP_ID = ?";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setDouble(1, latitude);
-            stmt.setDouble(2, longitude);
+            stmt.setLong(1, openWeatherMapId);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapResultSetToStation(rs);
+                    return Optional.of(mapResultSetToStation(rs));
                 }
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     /**
@@ -48,16 +46,19 @@ public class WeatherStationDAO {
      * @return La station avec son ID généré
      */
     public WeatherStation insert(WeatherStation station) throws SQLException {
-        String sql = "INSERT INTO WEATHER_STATION (ID, NAME, LATITUDE, LONGITUDE, LAST_UPDATED) " +
-                "VALUES (WEATHER_STATION_SEQ.NEXTVAL, ?, ?, ?, ?)";
+        String sql = "INSERT INTO WEATHER_STATION " +
+                "(ID, OPENWEATHERMAP_ID, NAME, COUNTRY, LATITUDE, LONGITUDE, LAST_UPDATED) " +
+                "VALUES (WEATHER_STATION_SEQ.NEXTVAL, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"ID"})) {
 
-            stmt.setString(1, station.getName());
-            stmt.setDouble(2, station.getLatitude());
-            stmt.setDouble(3, station.getLongitude());
-            stmt.setTimestamp(4, Timestamp.valueOf(station.getLastUpdated()));
+            stmt.setLong(1, station.getOpenWeatherMapId());
+            stmt.setString(2, station.getName());
+            stmt.setString(3, station.getCountry());
+            stmt.setDouble(4, station.getLatitude());
+            stmt.setDouble(5, station.getLongitude());
+            stmt.setTimestamp(6, Timestamp.valueOf(station.getLastUpdated()));
 
             int rowsAffected = stmt.executeUpdate();
 
@@ -98,7 +99,7 @@ public class WeatherStationDAO {
      */
     public List<WeatherStation> findAll() throws SQLException {
         List<WeatherStation> stations = new ArrayList<>();
-        String sql = "SELECT ID, NAME, LATITUDE, LONGITUDE, LAST_UPDATED " +
+        String sql = "SELECT ID, OPENWEATHERMAP_ID, NAME, COUNTRY, LATITUDE, LONGITUDE, LAST_UPDATED " +
                 "FROM WEATHER_STATION " +
                 "ORDER BY NAME";
 
@@ -119,7 +120,7 @@ public class WeatherStationDAO {
      * @return La station trouvée, ou null si elle n'existe pas
      */
     public WeatherStation findById(int id) throws SQLException {
-        String sql = "SELECT ID, NAME, LATITUDE, LONGITUDE, LAST_UPDATED " +
+        String sql = "SELECT ID, OPENWEATHERMAP_ID, NAME, COUNTRY, LATITUDE, LONGITUDE, LAST_UPDATED " +
                 "FROM WEATHER_STATION " +
                 "WHERE ID = ?";
 
@@ -141,12 +142,14 @@ public class WeatherStationDAO {
      * Convertit un ResultSet en objet WeatherStation.
      */
     private WeatherStation mapResultSetToStation(ResultSet rs) throws SQLException {
-        return new WeatherStation(
-                rs.getInt("ID"),
-                rs.getString("NAME"),
-                rs.getDouble("LATITUDE"),
-                rs.getDouble("LONGITUDE"),
-                rs.getTimestamp("LAST_UPDATED").toLocalDateTime()
-        );
+        WeatherStation station = new WeatherStation();
+        station.setId(rs.getInt("ID"));
+        station.setOpenWeatherMapId(rs.getLong("OPENWEATHERMAP_ID"));
+        station.setName(rs.getString("NAME"));
+        station.setCountry(rs.getString("COUNTRY"));
+        station.setLatitude(rs.getDouble("LATITUDE"));
+        station.setLongitude(rs.getDouble("LONGITUDE"));
+        station.setLastUpdated(rs.getTimestamp("LAST_UPDATED").toLocalDateTime());
+        return station;
     }
 }

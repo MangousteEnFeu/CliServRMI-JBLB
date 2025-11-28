@@ -107,7 +107,7 @@ public class WeatherApiClient {
 
         // Créer les données météo
         OpenWeatherMapResponse.Main main = apiResponse.getMain();
-        OpenWeatherMapResponse.Weather weather = apiResponse.getWeather().get(0);
+        OpenWeatherMapResponse.Weather weather = apiResponse.getWeather().getFirst();
         OpenWeatherMapResponse.Wind wind = apiResponse.getWind();
 
         WeatherData weatherData = new WeatherData(

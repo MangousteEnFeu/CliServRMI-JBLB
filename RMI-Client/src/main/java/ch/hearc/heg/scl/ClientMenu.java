@@ -20,7 +20,7 @@ public class ClientMenu {
     private static final String SERVICE_NAME = "WeatherService";
 
     private WeatherService weatherService;
-    private Scanner scanner;
+    private final Scanner scanner;
 
     public ClientMenu() {
         this.scanner = new Scanner(System.in);

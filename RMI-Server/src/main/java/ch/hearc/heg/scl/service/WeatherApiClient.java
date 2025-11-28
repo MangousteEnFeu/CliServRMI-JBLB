@@ -65,7 +65,16 @@ public class WeatherApiClient {
 
             // Vérification du code de statut HTTP
             if (response.statusCode() != 200) {
-                throw new IOException("Erreur API : " + response.statusCode() + " - " + response.body());
+                // Gérer les cas d'erreur courants
+                if (response.statusCode() == 401) {
+                    throw new IOException("Clé API invalide. Vérifiez votre fichier database.properties");
+                } else if (response.statusCode() == 404) {
+                    throw new IOException("Aucune station météo trouvée pour ces coordonnées");
+                } else if (response.statusCode() == 429) {
+                    throw new IOException("Limite de requêtes API atteinte. Veuillez réessayer plus tard");
+                } else {
+                    throw new IOException("Erreur API (code " + response.statusCode() + ")");
+                }
             }
 
             // Désérialisation JSON vers objet Java
@@ -87,7 +96,7 @@ public class WeatherApiClient {
         OpenWeatherMapResponse.Coord coord = apiResponse.getCoord();
         OpenWeatherMapResponse.Sys sys = apiResponse.getSys();
 
-        // MODIFIER : Utiliser le constructeur avec openWeatherMapId
+        // Créer la station avec l'ID OpenWeatherMap
         WeatherStation station = new WeatherStation(
                 apiResponse.getId(),                          // ID OpenWeatherMap
                 apiResponse.getName(),
@@ -95,6 +104,7 @@ public class WeatherApiClient {
                 coord.getLat(),
                 coord.getLon()
         );
+
         // Créer les données météo
         OpenWeatherMapResponse.Main main = apiResponse.getMain();
         OpenWeatherMapResponse.Weather weather = apiResponse.getWeather().get(0);

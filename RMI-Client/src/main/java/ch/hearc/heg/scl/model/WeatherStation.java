@@ -89,7 +89,11 @@ public class WeatherStation implements Serializable {
         this.country = country;
     }
 
-    // Nom complet avec pays
+    /**
+     * Retourne le nom complet de la station avec le code pays.
+     *
+     * @return Le nom avec le pays (ex: "Neuchâtel, CH") ou juste le nom si pays absent
+     */
     public String getFullName() {
         if (country != null && !country.isEmpty()) {
             return name + ", " + country;

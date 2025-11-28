@@ -2,7 +2,7 @@
 
 **Auteurs :** Loïc Barthoulot & Jérémie Bressoud (Sur la base d'un exercice de M. Francillon)
 
-**Date :** Novembre 27.11.2025
+**Date :** Novembre 28.11.2025
 
 ---
 

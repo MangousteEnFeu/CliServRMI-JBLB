@@ -226,6 +226,10 @@ public class ClientMenu {
 
     /**
      * Tronque une chaîne si elle dépasse la longueur maximale.
+     *
+     * @param str La chaîne à tronquer
+     * @param maxLength Longueur maximale
+     * @return La chaîne tronquée avec "..." si nécessaire, ou la chaîne originale
      */
     private String truncate(String str, int maxLength) {
         if (str == null) return "";

@@ -1,7 +1,7 @@
 # Projet n°2 - Service Météo RMI
 
-**Auteurs :** Loïc Barthoulot & Jérémie Bressoud (Sur la base d'un exercice de M. Francillon) 
-**Cours :** Services et composants logiciels
+**Auteurs :** Loïc Barthoulot & Jérémie Bressoud (Sur la base d'un exercice de M. Francillon)
+
 **Date :** Novembre 27.11.2025
 
 ---
@@ -101,12 +101,7 @@ api.key=VOTRE_CLE_API_OPENWEATHERMAP
 
 > **Important** : Le fichier `database.properties` est ignoré par Git pour des raisons de sécurité.
 
-### Obtenir une clé API OpenWeatherMap
 
-1. Créez un compte gratuit sur [OpenWeatherMap](https://openweathermap.org/api)
-2. Accédez à votre profil → API Keys
-3. Copiez la clé et collez-la dans `database.properties` (ligne `api.key=`)
-4. Attendez 10-15 minutes pour l'activation de la clé
 
 ---
 
@@ -115,15 +110,19 @@ api.key=VOTRE_CLE_API_OPENWEATHERMAP
 
 ### Table WEATHER_STATION
 
-| Colonne       | Type          | Description                        |
-|---------------|---------------|------------------------------------|
-| ID            | NUMBER(10)    | Clé primaire (auto-incrémenté)    |
-| NAME          | VARCHAR2(100) | Nom de la ville                   |
-| LATITUDE      | NUMBER(10,6)  | Latitude (-90 à 90)               |
-| LONGITUDE     | NUMBER(10,6)  | Longitude (-180 à 180)            |
-| LAST_UPDATED  | TIMESTAMP     | Date de dernière mise à jour      |
+| Colonne           | Type          | Description                        |
+|-------------------|---------------|------------------------------------|
+| ID                | NUMBER(10)    | Clé primaire (auto-incrémenté)    |
+| OPENWEATHERMAP_ID | NUMBER(15)    | ID unique de l'API (évite doublons)|
+| NAME              | VARCHAR2(100) | Nom de la ville                   |
+| COUNTRY           | VARCHAR2(10)  | Code pays (ex: CH, FR)            |
+| LATITUDE          | NUMBER(10,6)  | Latitude (-90 à 90)               |
+| LONGITUDE         | NUMBER(10,6)  | Longitude (-180 à 180)            |
+| LAST_UPDATED      | TIMESTAMP     | Date de dernière mise à jour      |
 
-**Contrainte :** Unicité sur (LATITUDE, LONGITUDE)
+**Contraintes :**
+- Clé primaire sur ID
+- **Unicité sur OPENWEATHERMAP_ID** (évite les doublons de villes - ex: Paris FR vs Paris TX)
 
 ### Table WEATHER_DATA
 
@@ -155,26 +154,49 @@ api.key=VOTRE_CLE_API_OPENWEATHERMAP
 
 ### Flux d'une recherche par coordonnées
 
+**⚠️ NOUVELLE LOGIQUE avec ID OpenWeatherMap :**
+
 ```
 CLIENT                 SERVEUR                API              DATABASE
   │                      │                     │                  │
   ├─RMI call────────────►│                     │                  │
   │  getStationBy        │                     │                  │
   │  Coordinates()       │                     │                  │
-  │                      ├─SELECT──────────────┼─────────────────►│
-  │                      │                     │                  │
-  │                      │◄─NULL (pas trouvé)──┼──────────────────┤
   │                      │                     │                  │
   │                      ├─HTTP GET────────────►│                  │
+  │                      │  (lat, lon)         │                  │
   │                      │                     │                  │
   │                      │◄─JSON Response──────┤                  │
+  │                      │  {id: 2661552,      │                  │
+  │                      │   name: "Neuchâtel",│                  │
+  │                      │   country: "CH"}    │                  │
   │                      │                     │                  │
+  │                      ├─SELECT by OWM_ID────┼─────────────────►│
+  │                      │  (WHERE OWM_ID=     │                  │
+  │                      │   2661552)          │                  │
+  │                      │                     │                  │
+  │                      │◄─NULL ou STATION────┼──────────────────┤
+  │                      │                     │                  │
+  │                      │─SI PAS TROUVÉ:      │                  │
   │                      ├─INSERT STATION──────┼─────────────────►│
+  │                      │  (avec OWM_ID)      │                  │
+  │                      │                     │                  │
   │                      ├─INSERT WEATHER_DATA─┼─────────────────►│
   │                      │                     │                  │
   │◄─WeatherStation──────┤                     │                  │
   │  (serialized)        │                     │                  │
 ```
+
+**🔑 Différence clé avec l'ancienne approche :**
+- ✅ **Nouvelle logique** : API D'ABORD → Récupération ID unique → Recherche par ID → Insert si absent
+- ❌ **Ancienne logique** : Recherche par coordonnées → Si absent → API → Insert
+
+**Avantages de la nouvelle approche :**
+- ✅ Évite les doublons (Paris FR ≠ Paris TX, même si coordonnées proches)
+- ✅ Identifiant unique et fiable (ID OpenWeatherMap)
+- ✅ Gestion cohérente des stations
+
+---
 
 ## Livrable
 
@@ -192,13 +214,14 @@ CLIENT                 SERVEUR                API              DATABASE
 
 ### Conformité avec les exigences
 
-- **Client et Serveur dans des modules séparés** : RMI-Server et RMI-Client  
-- **4 fonctionnalités serveur implémentées** : recherche, liste, détails, rafraîchissement  
-- **Menu client interactif** : ConsoleMenu avec saisies utilisateur  
-- **Technologies imposées** : Java, RMI, HttpClient, Gson, JDBC/OJDBC  
-- **README complet** : Instructions de démarrage détaillées  
-- **Script SQL fourni** : `create_database.sql`  
+- **Client et Serveur dans des modules séparés** : RMI-Server et RMI-Client
+- **4 fonctionnalités serveur implémentées** : recherche, liste, détails, rafraîchissement
+- **Menu client interactif** : ConsoleMenu avec saisies utilisateur
+- **Technologies imposées** : Java, RMI, HttpClient, Gson, JDBC/OJDBC
+- **README complet** : Instructions de démarrage détaillées
+- **Script SQL fourni** : `create_database.sql`
 - **Projet exécutable** : Instructions claires pour le lancement
+- **Gestion des doublons** : Utilisation de l'ID unique OpenWeatherMap
 
 ### Points d'attention
 
@@ -206,6 +229,7 @@ CLIENT                 SERVEUR                API              DATABASE
 - Le **script SQL** permet de recréer la structure complète
 - Les **membres du groupe** sont indiqués en haut du README
 - Le projet **compile et s'exécute** en suivant les instructions
+- **L'ID OpenWeatherMap** garantit l'unicité des stations (pas de doublons)
 
 ---
 
@@ -218,3 +242,4 @@ Ce projet nous a permis de :
 - Intégrer une **API REST externe** (OpenWeatherMap)
 - Gérer la **persistance** avec JDBC et Oracle
 - Gérer les **erreurs réseau** et les cas limites
+- Comprendre l'importance des **identifiants uniques** pour éviter les doublons

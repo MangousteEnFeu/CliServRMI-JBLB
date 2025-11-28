@@ -85,15 +85,32 @@ public class ClientMenu {
      */
     private void searchStationByCoordinates() throws RemoteException {
         System.out.println("\n--- Recherche par coordonnées ---");
+        System.out.println("\n💡 Exemples de coordonnées suisses:");
+        System.out.println("   • La Chaux-de-Fonds: 47.1 / 6.83");
+        System.out.println("   • Neuchâtel: 46.99 / 6.93");
+        System.out.println("   • Berne: 46.95 / 7.44");
+        System.out.println("   • Genève: 46.20 / 6.15\n");
 
         try {
+            // Saisie et validation de la latitude
             System.out.print("Latitude (-90 à 90) : ");
             double latitude = Double.parseDouble(scanner.nextLine());
 
+            if (latitude < -90 || latitude > 90) {
+                System.out.println("Erreur : La latitude doit être entre -90 et 90");
+                return;
+            }
+
+            // Saisie et validation de la longitude
             System.out.print("Longitude (-180 à 180) : ");
             double longitude = Double.parseDouble(scanner.nextLine());
 
-            System.out.println("\nRecherche en cours...");
+            if (longitude < -180 || longitude > 180) {
+                System.out.println("Erreur : La longitude doit être entre -180 et 180");
+                return;
+            }
+
+            System.out.println("\n⏳ Recherche en cours...");
             WeatherStation station = weatherService.getStationByCoordinates(latitude, longitude);
 
             if (station != null) {
@@ -103,15 +120,10 @@ public class ClientMenu {
                 System.out.println("\nAucune station trouvée pour ces coordonnées.");
             }
         } catch (NumberFormatException e) {
-            System.out.println("/nVeuillez entrer des nombres valides pour les coordonnées.");
+            System.out.println("\nVeuillez entrer des nombres valides pour les coordonnées.");
         } catch (RemoteException e) {
-            // Extraire le message d'erreur plus propre
-            String errorMessage = e.getMessage();
-            if (errorMessage.contains("Aucune station météo trouvée")) {
-                System.out.println(errorMessage);
-            } else {
-                System.err.println("\nErreur de communication avec le serveur : " + errorMessage);
-            }
+            // Gestion propre des erreurs sans détection par emoji
+            System.err.println("\nErreur : " + e.getMessage());
         }
     }
 
@@ -125,19 +137,21 @@ public class ClientMenu {
         if (stations.isEmpty()) {
             System.out.println("Aucune station enregistrée.");
         } else {
-            System.out.println("\n" + stations.size() + " station(s) trouvée(s) :\n");
-            System.out.println("┌──────┬─────────────────────────┬────────────┬─────────────┐");
-            System.out.println("│  ID  │         Nom             │  Latitude  │  Longitude  │");
-            System.out.println("├──────┼─────────────────────────┼────────────┼─────────────┤");
+            System.out.println("\n✅ " + stations.size() + " station(s) trouvée(s) :\n");
+            System.out.println("┌──────┬──────────────┬──────────┬─────────────────────────┬────────────┬─────────────┐");
+            System.out.println("│  ID  │  ID OWM      │  Pays    │         Nom             │  Latitude  │  Longitude  │");
+            System.out.println("├──────┼──────────────┼──────────┼─────────────────────────┼────────────┼─────────────┤");
 
             for (WeatherStation station : stations) {
-                System.out.printf("│ %-4d │ %-23s │ %10.6f │ %11.6f │%n",
+                System.out.printf("│ %-4d │ %-12d │ %-8s │ %-23s │ %10.6f │ %11.6f │%n",
                         station.getId(),
+                        station.getOpenWeatherMapId(),
+                        station.getCountry() != null ? station.getCountry() : "N/A",
                         truncate(station.getName(), 23),
                         station.getLatitude(),
                         station.getLongitude());
             }
-            System.out.println("└──────┴─────────────────────────┴────────────┴─────────────┘");
+            System.out.println("└──────┴──────────────┴──────────┴─────────────────────────┴────────────┴─────────────┘");
         }
     }
 
@@ -146,16 +160,23 @@ public class ClientMenu {
      */
     private void showStationDetails() throws RemoteException {
         System.out.println("\n--- Détails d'une station ---");
-        System.out.print("ID de la station : ");
-        int stationId = Integer.parseInt(scanner.nextLine());
 
-        System.out.println("\n⏳ Chargement...");
-        WeatherStation station = weatherService.getStationWithWeatherData(stationId);
+        try {
+            System.out.print("ID de la station : ");
+            int stationId = Integer.parseInt(scanner.nextLine());
 
-        if (station != null) {
-            displayStationWithWeather(station);
-        } else {
-            System.out.println("\n❌ Station introuvable.");
+            System.out.println("\nChargement...");
+            WeatherStation station = weatherService.getStationWithWeatherData(stationId);
+
+            if (station != null) {
+                displayStationWithWeather(station);
+            } else {
+                System.out.println("\nStation introuvable.");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("\nVeuillez entrer un ID valide (nombre entier).");
+        } catch (RemoteException e) {
+            System.err.println("\nErreur : " + e.getMessage());
         }
     }
 
@@ -164,13 +185,13 @@ public class ClientMenu {
      */
     private void refreshAllStations() throws RemoteException {
         System.out.println("\n--- Rafraîchissement des stations ---");
-        System.out.print("⚠️  Cette opération peut prendre du temps. Continuer ? (o/n) : ");
+        System.out.print("⚠Cette opération peut prendre du temps. Continuer ? (o/n) : ");
         String confirm = scanner.nextLine();
 
         if (confirm.equalsIgnoreCase("o") || confirm.equalsIgnoreCase("oui")) {
             System.out.println("\n⏳ Rafraîchissement en cours...");
             int updatedCount = weatherService.refreshAllStations();
-            System.out.println("\n✓ " + updatedCount + " station(s) mise(s) à jour avec succès !");
+            System.out.println("\n" + updatedCount + " station(s) mise(s) à jour avec succès !");
         } else {
             System.out.println("\nOpération annulée.");
         }
@@ -183,8 +204,9 @@ public class ClientMenu {
         System.out.println("\n╔════════════════════════════════════════╗");
         System.out.println("║          STATION MÉTÉO                 ║");
         System.out.println("╚════════════════════════════════════════╝");
-        System.out.println("ID          : " + station.getId());
-        System.out.println("Nom         : " + station.getName());
+        System.out.println("ID DB       : " + station.getId());
+        System.out.println("ID OWM      : " + station.getOpenWeatherMapId());
+        System.out.println("Nom         : " + station.getFullName());
         System.out.println("Coordonnées : " + station.getLatitude() + ", " + station.getLongitude());
         System.out.println("Dernière MÀJ: " + station.getLastUpdated());
 
@@ -198,7 +220,7 @@ public class ClientMenu {
             System.out.println("Vent             : " + station.getCurrentWeather().getWindSpeed() + " m/s");
             System.out.println("Horodatage       : " + station.getCurrentWeather().getTimestamp());
         } else {
-            System.out.println("\n❌ Aucune donnée météo disponible.");
+            System.out.println("\nAucune donnée météo disponible.");
         }
     }
 
@@ -220,10 +242,10 @@ public class ClientMenu {
             client.connect();
             client.showMenu();
         } catch (RemoteException e) {
-            System.err.println("❌ Erreur de connexion au serveur RMI : " + e.getMessage());
+            System.err.println("Erreur de connexion au serveur RMI : " + e.getMessage());
             System.err.println("Assurez-vous que le serveur est démarré.");
         } catch (NotBoundException e) {
-            System.err.println("❌ Service introuvable : " + e.getMessage());
+            System.err.println("Service introuvable : " + e.getMessage());
         }
     }
 }

@@ -2,6 +2,8 @@
 
 **Auteurs :** Loïc Barthoulot & Jérémie Bressoud (Sur la base d'un exercice de M. Francillon)
 
+**Cours :** Services et composants logiciels
+
 **Date :** Novembre 28.11.2025
 
 ---
